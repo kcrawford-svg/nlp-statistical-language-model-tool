@@ -14,7 +14,10 @@ class CorpusReader_SLM:
         self.vocab = set()
         self.unigramCounts = Counter()
         self.bigramCounts = Counter()
+        self.bigram_prob_counts = Counter()
         self.trigramCounts = Counter()
+        self.trigram_prob_counts = Counter()
+
 
         # Handle the stop words or read stop words from a file
         if stopWord == 'standard':
@@ -38,6 +41,8 @@ class CorpusReader_SLM:
                 if self.stemmer:
                     word = self.stemmer.stem(word)
                 processed.append(word)
+            if not processed:
+                continue
 
             # Update and save the unique word form the corpus
             self.vocab.update(processed)
@@ -49,12 +54,15 @@ class CorpusReader_SLM:
             for i in range(len(processed) - 1):
                 bigram_tuple = (processed[i], processed[i + 1])
                 self.bigramCounts[bigram_tuple] += 1
+                self.bigram_prob_counts[processed[1]] += 1  # get the first word
+
 
             # Create tri-gram tuple if tri-gram flag is True
             if trigram:
                 for i in range(len(processed) - 2):
                     trigram_tuple = (processed[i], processed[i + 1], processed[i + 2])
                     self.trigramCounts[trigram_tuple] += 1
+                    self.trigram_prob_counts[processed[i], processed[i + 1]] += 1
 
         # Precompute sum totals from Counter() method to calculate probabilities
         self.totalUnigramCounts = sum(self.unigramCounts.values())
@@ -87,18 +95,18 @@ class CorpusReader_SLM:
         prob_dict = {}
         v = len(self.vocab)
         for (word_one, word_two), c in self.bigramCounts.items():
-            bigram_to_string = f"{word_one} {word_two}"
+            cond_count = self.bigram_prob_counts[word_one]
             if self.enableSmoothing:
-                prob_dict[bigram_to_string] = (c + 1) / (self.totalUnigramCounts + v)
+                prob_dict[f'{word_one} {word_two}'] = (c + 1) / (cond_count + v)
             else:
-                prob_dict[bigram_to_string] = c / self.totalUnigramCounts
+                prob_dict[f'{word_one} {word_two}'] = c / cond_count
 
         # Words Sort alphabetically
         result = sorted([(w, p) for w, p in prob_dict.items()], key=lambda x: x[0])
 
         if count > 0:
             # Sorted probabilities
-            sortedProb = sorted(result, key=lambda x: (-x[0], x[1]))
+            sortedProb = sorted(result, key=lambda x: (x[1]), reverse=True)
             # Get the last probability value in the dict else get the lowest if count = 0
             lastProb = sortedProb[count - 1][1] if count <= len(sortedProb) else sortedProb[-1][1]
 
@@ -112,19 +120,19 @@ class CorpusReader_SLM:
 
         prob_dict = {}
         v = len(self.vocab)
-        for (word_one, word_two, word_three), c in self.bigramCounts.items():
-            trigram_to_string = f"{word_one} {word_two} {word_three}"
+        for (word_one, word_two, word_three), c in self.trigramCounts.items():
+            cond_count = self.trigram_prob_counts[word_one, word_two, word_three]
             if self.enableSmoothing:
-                prob_dict[trigram_to_string] = (c + 1) / (self.totalUnigramCounts + v)
+                prob_dict[f"{word_one} {word_two} {word_three}"] = (c + 1) / (cond_count + v)
             else:
-                prob_dict[trigram_to_string] = c / self.totalUnigramCounts
+                prob_dict[f"{word_one} {word_two} {word_three}"] = c / cond_count
 
         # Words Sort alphabetically
         result = sorted([(w, p) for w, p in prob_dict.items()], key=lambda x: x[0])
 
         if count > 0:
             # Sorted probabilities
-            sortedProb = sorted(result, key=lambda x: (-x[0], x[1]))
+            sortedProb = sorted(result, key=lambda x: (x[1]), reverse=True)
             # Get the last probability value in the dict else get the lowest if count = 0
             lastProb = sortedProb[count - 1][1] if count <= len(sortedProb) else sortedProb[-1][1]
 
