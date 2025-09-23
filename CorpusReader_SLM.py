@@ -62,16 +62,82 @@ class CorpusReader_SLM:
         self.totalTrigramCounts = sum(self.trigramCounts.values())
 
     def unigram(self, count=0):
+        prob_dict = {}
+        v = len(self.vocab)
+        for word, c in self.unigramCounts.items():
+            if self.enableSmoothing:
+                prob_dict[word] = (c + 1) / (self.totalUnigramCounts + v)
+            else:
+                prob_dict[word] = c / self.totalUnigramCounts
 
-        return []
+        # Words Sort alphabetically
+        result = sorted([(w, p) for w, p in prob_dict.items()], key=lambda x: x[0])
+
+        if count > 0:
+            # Sorted probabilities
+            sortedProb = sorted(result, key=lambda x: (-x[0], x[1]))
+            # Get the last probability value in the dict else get the lowest if count = 0
+            lastProb = sortedProb[count - 1][1] if count <= len(sortedProb) else sortedProb[-1][1]
+
+            tiedTop = [value for value in sortedProb if value[1] >= lastProb]
+            return tiedTop
+        return result
 
     def bigram(self, count=0):
-        return []
+        prob_dict = {}
+        v = len(self.vocab)
+        for (word_one, word_two), c in self.bigramCounts.items():
+            bigram_to_string = f"{word_one} {word_two}"
+            if self.enableSmoothing:
+                prob_dict[bigram_to_string] = (c + 1) / (self.totalUnigramCounts + v)
+            else:
+                prob_dict[bigram_to_string] = c / self.totalUnigramCounts
+
+        # Words Sort alphabetically
+        result = sorted([(w, p) for w, p in prob_dict.items()], key=lambda x: x[0])
+
+        if count > 0:
+            # Sorted probabilities
+            sortedProb = sorted(result, key=lambda x: (-x[0], x[1]))
+            # Get the last probability value in the dict else get the lowest if count = 0
+            lastProb = sortedProb[count - 1][1] if count <= len(sortedProb) else sortedProb[-1][1]
+
+            tiedTop = [value for value in sortedProb if value[1] >= lastProb]
+            return tiedTop
+        return result
 
     def trigram(self, count=0):
-        return []
+        if not self.enableTrigram:
+            return []
+
+        prob_dict = {}
+        v = len(self.vocab)
+        for (word_one, word_two, word_three), c in self.bigramCounts.items():
+            trigram_to_string = f"{word_one} {word_two} {word_three}"
+            if self.enableSmoothing:
+                prob_dict[trigram_to_string] = (c + 1) / (self.totalUnigramCounts + v)
+            else:
+                prob_dict[trigram_to_string] = c / self.totalUnigramCounts
+
+        # Words Sort alphabetically
+        result = sorted([(w, p) for w, p in prob_dict.items()], key=lambda x: x[0])
+
+        if count > 0:
+            # Sorted probabilities
+            sortedProb = sorted(result, key=lambda x: (-x[0], x[1]))
+            # Get the last probability value in the dict else get the lowest if count = 0
+            lastProb = sortedProb[count - 1][1] if count <= len(sortedProb) else sortedProb[-1][1]
+
+            tiedTop = [value for value in sortedProb if value[1] >= lastProb]
+            return tiedTop
+        return result
+
 
     def unigramGenerate(self, code=0, head=[]):
+        if code not in [1, 2, 3]:
+            return ""
+
+
         return ""
 
     def bigramGenerate(self, code=0, head=[]):

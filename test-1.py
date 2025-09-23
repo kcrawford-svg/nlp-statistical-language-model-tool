@@ -1,7 +1,6 @@
+import nltk
 from nltk.corpus import PlaintextCorpusReader, treebank
 from CorpusReader_SLM import *
-
-
 
 
 '''
